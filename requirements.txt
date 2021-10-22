@@ -1,0 +1,3 @@
+openvino==2021.4.1
+opencv-python
+pyautogui
