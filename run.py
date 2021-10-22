@@ -68,7 +68,7 @@ def main():
 
         det = model({'image': np.array([np.transpose(resized_central_crop, (2, 0, 1))])})
         for x1, y1, x2, y2, conf in det['boxes']:
-            if conf > 0.97:
+            if conf > 0.99:
                 x1_n = x1 / net_width
                 x2_n = x2 / net_width
                 y1_n = y1 / net_height
