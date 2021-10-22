@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import time
 
@@ -8,9 +9,10 @@ import pyautogui
 
 from detector import Detector
 
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--draw_only', action='store_true')
     parser.add_argument('--folder')
 
     return parser.parse_args()
@@ -50,11 +52,32 @@ def main():
         source = ScreenShotter()
 
 
+    mouse_positions = []
 
     while True:
+        time.sleep(1)
+
         image = source()
         if image is None:
             break
+
+        mouse_pos = pyautogui.position()
+        mouse_positions.append([mouse_pos.x, mouse_pos.y])
+        to_check = False
+        averaging = 10
+        if len(mouse_positions) > averaging:
+            mouse_positions = mouse_positions[1:]
+            s = np.sum(np.std(mouse_positions, axis=0))
+            logging.info(f'{averaging}-sec averaged mouse activity {s}')
+            if s == 0:
+                logging.info('trying to find "accept" button')
+                to_check = True
+                mouse_positions = []
+        else:
+            logging.info('pause')
+
+        if not to_check:
+            continue
 
         orig_width, orig_height = image.shape[1], image.shape[0]
 
@@ -81,28 +104,10 @@ def main():
                 x = (x1_o + x2_o) // 2
                 y = (y1_o + y2_o) // 2
 
-                print(f'{x=} {y=} {conf=}')
+                logging.info(f'Clicked {x=} {y=} {conf=}')
+                pyautogui.click(x, y)
 
-                if args.draw_only:
-                    x1 = int(x1_n * resized_central_crop.shape[1])
-                    x2 = int(x2_n * resized_central_crop.shape[1])
-                    y1 = int(y1_n * resized_central_crop.shape[0])
-                    y2 = int(y2 / net_height * resized_central_crop.shape[0])
-                    cv2.rectangle(resized_central_crop, (x1, y1), (x2, y2), (0, 0, 255), 3)
-
-                    cv2.rectangle(image, (x1_o, y1_o), (x2_o, y2_o), (0, 0, 255), 3)
-                    cv2.circle(image, (x, y), 10, (0, 0, 255), -1)
-                else:
-                    pyautogui.click(x, y)
             break
-
-        if args.draw_only:
-            cv2.imshow('resized_central_crop', resized_central_crop)
-            cv2.imshow('image', image)
-            if cv2.waitKey(0) == 27:
-                break
-        else:
-            time.sleep(5)
 
 
 if __name__ == '__main__':
